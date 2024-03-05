@@ -1,189 +1,400 @@
-<!DOCTYPE html>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
 <html>
-
 <head>
-  <meta charset='utf-8' />
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta http-equiv="Content-Style-Type" content="text/css">
   <title></title>
-  <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.0/jquery.min.js"></script>
-  <script src='https://api.mapbox.com/mapbox-gl-js/v2.0.1/mapbox-gl.js'></script>
-  <link href='https://api.mapbox.com/mapbox-gl-js/v2.0.1/mapbox-gl.css' rel='stylesheet' />
-  <script src='https://npmcdn.com/csv2geojson@latest/csv2geojson.js'></script>
-  <script src='https://npmcdn.com/@turf/turf/turf.min.js'></script>
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-    }
-
-    #map {
-      position: absolute;
-      top: 0;
-      bottom: 0;
-      width: 100%;
-    }
-
-    /* Popup styling */
-
-    .mapboxgl-popup {
-      padding-bottom: 5px;
-    }
-
-    .mapboxgl-popup-close-button {
-      display: none;
-    }
-
-    .mapboxgl-popup-content {
-      font: 400 15px/22px 'Source Sans Pro', 'Helvetica Neue', Sans-serif;
-      padding: 0;
-      width: 250px;
-    }
-
-    .mapboxgl-popup-content-wrapper {
-      padding: 1%;
-    }
-
-    .mapboxgl-popup-content h3 {
-      background: rgb(61, 59, 59);
-      text-align: center;
-      color: #fff;
-      margin: 0;
-      display: block;
-      padding: 15px;
-      font-weight: 700;
-      margin-top: -5px;
-    }
-
-    .mapboxgl-popup-content h4 {
-      margin: 0;
-      display: block;
-      padding: 10px 3px 10px 10px;
-      font-weight: 400;
-    }
-
-    .mapboxgl-container {
-      cursor: pointer;
-    }
-
-    .mapboxgl-popup-anchor-top>.mapboxgl-popup-content {
-      margin-top: 3px;
-    }
-
-    .mapboxgl-popup-anchor-top>.mapboxgl-popup-tip {
-      border-bottom-color: rgb(61, 59, 59);
-    }
+  <meta name="Generator" content="Cocoa HTML Writer">
+  <meta name="CocoaVersion" content="2487.4">
+  <style type="text/css">
+    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px '.AppleSystemUIFontMonospaced'}
+    p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px '.AppleSystemUIFontMonospaced'; min-height: 15.0px}
+    p.p3 {margin: 0.0px 0.0px 0.0px 0.0px; text-align: right; font: 12.0px '.AppleSystemUIFontMonospaced'; color: #e0e8f0; -webkit-text-stroke: #e0e8f0}
+    p.p4 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px '.AppleSystemUIFontMonospaced'; color: #e0e8f0; -webkit-text-stroke: #e0e8f0; min-height: 15.0px}
+    span.s1 {font-kerning: none; -webkit-text-stroke: 0px #000000}
+    span.s2 {font-kerning: none; background-color: #0c0e12}
+    span.s3 {font-kerning: none}
   </style>
 </head>
-
 <body>
-
-  <div id='map'></div>
-  <script>
-
-    var transformRequest = (url, resourceType) => {
-      var isMapboxRequest =
-        url.slice(8, 22) === "api.mapbox.com" ||
-        url.slice(10, 26) === "tiles.mapbox.com";
-      return {
-        url: isMapboxRequest
-          ? url.replace("?", "?pluginName=sheetMapper&")
-          : url
-      };
-    };
-    //YOUR TURN: add your Mapbox token
-    
-    mapboxgl.accessToken = 'pk.eyJ1IjoidGd1eWVyIiwiYSI6ImNsdGRwNjloaTA2Zmwya3Nka3VybW5uOW0ifQ.hOE56hV08FRFvSuYqlCMVg'; //Mapbox token 
-    var map = new mapboxgl.Map({
-      container: 'map', // container id
-      style: 'mapbox://styles/mapbox/streets-v11', // YOUR TURN: choose a style: https://docs.mapbox.com/api/maps/#styles
-      center: [-38.200578037820186, -97.51188957121471], // starting position [lng, lat]
-      zoom: 10,// starting zoom
-      transformRequest: transformRequest
-    });
-
-    $(document).ready(function () {
-      $.ajax({
-        type: "GET",
-        //YOUR TURN: Replace with csv export link
-        url: 'https://docs.google.com/spreadsheets/d/193Kj1hFJnF5-ckTmRjyxR_sTgC1qDKSA_K8MYzua9PI/gviz/tq?tqx=out:csv&sheet=Active%20Dealer%20export',
-        dataType: "text",
-        success: function (csvData) { makeGeoJSON(csvData); }
-      });
-
-
-
-      function makeGeoJSON(csvData) {
-        csv2geojson.csv2geojson(csvData, {
-          latfield: 'Lat',
-          lonfield: 'Lon',
-          delimiter: ','
-        }, function (err, data) {
-          map.on('load', function () {
-
-            //Add the the layer to the map
-            map.addLayer({
-              'id': 'csvData',
-              'type': 'circle',
-              'source': {
-                'type': 'geojson',
-                'data': data
-              },
-              'paint': {
-                'circle-radius': 15,
-                'circle-color': "red"
-              }
-            });
-
-
-            // When a click event occurs on a feature in the csvData layer, open a popup at the
-            // location of the feature, with description HTML from its properties.
-            map.on('click', 'csvData', function (e) {
-              var coordinates = e.features[0].geometry.coordinates.slice();
-
-              //set popup text
-              //You can adjust the values of the popup to match the headers of your CSV.
-              // For example: e.features[0].properties.Name is retrieving information from the field Name in the original CSV.
-              var description = `<h3>` + e.features[0].properties.DealerName + `</h3>` + `<h4>` + `<b>` + `Address: ` + `</b>` + e.features[0].properties.CombinedAddress + `</h4>` + `<h4>` + `<b>` + `Phone: ` + `</b>` + e.features[0].properties.Phone + `</h4>`;
-
-              // Ensure that if the map is zoomed out such that multiple
-              // copies of the feature are visible, the popup appears
-              // over the copy being pointed to.
-              while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
-                coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
-              }
-
-              //add Popup to map
-
-              new mapboxgl.Popup()
-                .setLngLat(coordinates)
-                .setHTML(description)
-                .addTo(map);
-            });
-
-            // Change the cursor to a pointer when the mouse is over the places layer.
-            map.on('mouseenter', 'csvData', function () {
-              map.getCanvas().style.cursor = 'pointer';
-            });
-
-            // Change it back to a pointer when it leaves.
-            map.on('mouseleave', 'places', function () {
-              map.getCanvas().style.cursor = '';
-            });
-
-            var bbox = turf.bbox(data);
-            map.fitBounds(bbox, { padding: 50 });
-
-          });
-
-        });
-      };
-    });
-
-
-
-
-  </script>
-
+<p class="p1"><span class="s1">&lt;div&gt;&lt;br class="Apple-interchange-newline"&gt;&lt;!DOCTYPE html&gt;</span></p>
+<p class="p1"><span class="s1">&lt;html&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">&lt;head&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;meta charset='utf-8' /&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;title&gt;&lt;/title&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' /&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.0/jquery.min.js"&gt;&lt;/script&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;script src='https://api.mapbox.com/mapbox-gl-js/v2.0.1/mapbox-gl.js'&gt;&lt;/script&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;link href='https://api.mapbox.com/mapbox-gl-js/v2.0.1/mapbox-gl.css' rel='stylesheet' /&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;script src='https://npmcdn.com/csv2geojson@latest/csv2geojson.js'&gt;&lt;/script&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;script src='https://npmcdn.com/@turf/turf/turf.min.js'&gt;&lt;/script&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;style&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>body {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>margin: 0;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>padding: 0;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>#map {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>position: absolute;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>top: 0;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>bottom: 0;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>width: 100%;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>/* Popup styling */</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>.mapboxgl-popup {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>padding-bottom: 5px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>.mapboxgl-popup-close-button {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>display: none;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>.mapboxgl-popup-content {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>font: 400 15px/22px 'Source Sans Pro', 'Helvetica Neue', Sans-serif;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>padding: 0;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>width: 250px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>.mapboxgl-popup-content-wrapper {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>padding: 1%;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>.mapboxgl-popup-content h3 {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>background: rgb(61, 59, 59);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>text-align: center;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>color: #fff;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>margin: 0;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>display: block;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>padding: 15px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>font-weight: 700;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>margin-top: -5px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>.mapboxgl-popup-content h4 {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>margin: 0;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>display: block;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>padding: 10px 3px 10px 10px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>font-weight: 400;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>.mapboxgl-container {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>cursor: pointer;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>.mapboxgl-popup-anchor-top&gt;.mapboxgl-popup-content {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>margin-top: 3px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>.mapboxgl-popup-anchor-top&gt;.mapboxgl-popup-tip {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>border-bottom-color: rgb(61, 59, 59);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;/style&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/head&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">&lt;body&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;div id='map'&gt;&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;script&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>var transformRequest = (url, resourceType) =&gt; {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>var isMapboxRequest =</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>url.slice(8, 22) === "api.mapbox.com" ||</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>url.slice(10, 26) === "tiles.mapbox.com";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>return {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>url: isMapboxRequest</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>? url.replace("?", "?pluginName=sheetMapper&amp;")</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>: url</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>};</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>};</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>//YOUR TURN: add your Mapbox token</span></p>
+<p class="p2"><span class="s1"><span class="Apple-converted-space">    </span></span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>mapboxgl.accessToken = 'pk.eyJ1IjoidGd1eWVyIiwiYSI6ImNsdGRwNjloaTA2Zmwya3Nka3VybW5uOW0ifQ.hOE56hV08FRFvSuYqlCMVg'; //Mapbox token<span class="Apple-converted-space"> </span></span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>var map = new mapboxgl.Map({</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>container: 'map', // container id</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>style: 'mapbox://styles/mapbox/streets-v11', // YOUR TURN: choose a style: https://docs.mapbox.com/api/maps/#styles</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>center: [-38.200578037820186, -97.51188957121471], // starting position [lng, lat]</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>zoom: 10,// starting zoom</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>transformRequest: transformRequest</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>});</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>$(document).ready(function () {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>$.ajax({</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>type: "GET",</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>//YOUR TURN: Replace with csv export link</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>url: 'https://docs.google.com/spreadsheets/d/193Kj1hFJnF5-ckTmRjyxR_sTgC1qDKSA_K8MYzua9PI/gviz/tq?tqx=out:csv&amp;sheet=Active%20Dealer%20export',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>dataType: "text",</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>success: function (csvData) { makeGeoJSON(csvData); }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>});</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>function makeGeoJSON(csvData) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>csv2geojson.csv2geojson(csvData, {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>latfield: 'Lat',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>lonfield: 'Lon',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>delimiter: ','</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>}, function (err, data) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>map.on('load', function () {</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>//Add the the layer to the map</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>map.addLayer({</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>'id': 'csvData',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>'type': 'circle',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>'source': {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>'type': 'geojson',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>'data': data</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>},</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>'paint': {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>'circle-radius': 15,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>'circle-color': "red"</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>});</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>// When a click event occurs on a feature in the csvData layer, open a popup at the</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>// location of the feature, with description HTML from its properties.</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>map.on('click', 'csvData', function (e) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>var coordinates = e.features[0].geometry.coordinates.slice();</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>//set popup text</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>//You can adjust the values of the popup to match the headers of your CSV.</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>// For example: e.features[0].properties.Name is retrieving information from the field Name in the original CSV.</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>var description = `&lt;h3&gt;` + e.features[0].properties.DealerName + `&lt;/h3&gt;` + `&lt;h4&gt;` + `&lt;b&gt;` + `Address: ` + `&lt;/b&gt;` + e.features[0].properties.CombinedAddress + `&lt;/h4&gt;` + `&lt;h4&gt;` + `&lt;b&gt;` + `Phone: ` + `&lt;/b&gt;` + e.features[0].properties.Phone + `&lt;/h4&gt;`;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>// Ensure that if the map is zoomed out such that multiple</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>// copies of the feature are visible, the popup appears</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>// over the copy being pointed to.</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>while (Math.abs(e.lngLat.lng - coordinates[0]) &gt; 180) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>coordinates[0] += e.lngLat.lng &gt; coordinates[0] ? 360 : -360;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>//add Popup to map</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>new mapboxgl.Popup()</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>.setLngLat(coordinates)</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>.setHTML(description)</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>.addTo(map);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>});</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>// Change the cursor to a pointer when the mouse is over the places layer.</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>map.on('mouseenter', 'csvData', function () {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>map.getCanvas().style.cursor = 'pointer';</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>});</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>// Change it back to a pointer when it leaves.</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>map.on('mouseleave', 'places', function () {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>map.getCanvas().style.cursor = '';</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>});</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>var bbox = turf.bbox(data);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>map.fitBounds(bbox, { padding: 50 });</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>});</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>});</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>};</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>});</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;/script&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">&lt;/body&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">&lt;/html&gt;&lt;/div&gt;</span></p>
+<p class="p3"><span class="s2">1</span></p>
+<p class="p3"><span class="s2">2</span></p>
+<p class="p3"><span class="s2">3</span></p>
+<p class="p3"><span class="s2">4</span></p>
+<p class="p3"><span class="s2">5</span></p>
+<p class="p3"><span class="s2">6</span></p>
+<p class="p3"><span class="s2">7</span></p>
+<p class="p3"><span class="s2">8</span></p>
+<p class="p3"><span class="s2">9</span></p>
+<p class="p3"><span class="s2">10</span></p>
+<p class="p3"><span class="s2">11</span></p>
+<p class="p3"><span class="s2">12</span></p>
+<p class="p3"><span class="s2">13</span></p>
+<p class="p3"><span class="s2">14</span></p>
+<p class="p3"><span class="s2">15</span></p>
+<p class="p3"><span class="s2">16</span></p>
+<p class="p3"><span class="s2">17</span></p>
+<p class="p3"><span class="s2">18</span></p>
+<p class="p3"><span class="s2">19</span></p>
+<p class="p3"><span class="s2">20</span></p>
+<p class="p3"><span class="s2">21</span></p>
+<p class="p3"><span class="s2">22</span></p>
+<p class="p3"><span class="s2">23</span></p>
+<p class="p3"><span class="s2">24</span></p>
+<p class="p3"><span class="s2">25</span></p>
+<p class="p3"><span class="s2">26</span></p>
+<p class="p3"><span class="s2">27</span></p>
+<p class="p3"><span class="s2">28</span></p>
+<p class="p3"><span class="s2">29</span></p>
+<p class="p3"><span class="s2">30</span></p>
+<p class="p3"><span class="s2">31</span></p>
+<p class="p3"><span class="s2">32</span></p>
+<p class="p3"><span class="s2">33</span></p>
+<p class="p3"><span class="s2">34</span></p>
+<p class="p3"><span class="s2">35</span></p>
+<p class="p3"><span class="s2">36</span></p>
+<p class="p3"><span class="s2">37</span></p>
+<p class="p3"><span class="s2">38</span></p>
+<p class="p3"><span class="s2">39</span></p>
+<p class="p3"><span class="s2">40</span></p>
+<p class="p3"><span class="s2">41</span></p>
+<p class="p3"><span class="s2">42</span></p>
+<p class="p3"><span class="s2">43</span></p>
+<p class="p3"><span class="s2">44</span></p>
+<p class="p3"><span class="s2">45</span></p>
+<p class="p3"><span class="s2">46</span></p>
+<p class="p3"><span class="s2">47</span></p>
+<p class="p3"><span class="s2">48</span></p>
+<p class="p3"><span class="s2">49</span></p>
+<p class="p3"><span class="s2">50</span></p>
+<p class="p3"><span class="s2">51</span></p>
+<p class="p3"><span class="s2">52</span></p>
+<p class="p3"><span class="s2">53</span></p>
+<p class="p3"><span class="s2">54</span></p>
+<p class="p3"><span class="s2">55</span></p>
+<p class="p3"><span class="s2">56</span></p>
+<p class="p3"><span class="s2">57</span></p>
+<p class="p3"><span class="s2">58</span></p>
+<p class="p3"><span class="s2">59</span></p>
+<p class="p3"><span class="s2">60</span></p>
+<p class="p3"><span class="s2">61</span></p>
+<p class="p3"><span class="s2">62</span></p>
+<p class="p3"><span class="s2">63</span></p>
+<p class="p3"><span class="s2">64</span></p>
+<p class="p3"><span class="s2">65</span></p>
+<p class="p3"><span class="s2">66</span></p>
+<p class="p3"><span class="s2">67</span></p>
+<p class="p3"><span class="s2">68</span></p>
+<p class="p3"><span class="s2">69</span></p>
+<p class="p3"><span class="s2">70</span></p>
+<p class="p3"><span class="s2">71</span></p>
+<p class="p3"><span class="s2">72</span></p>
+<p class="p3"><span class="s2">73</span></p>
+<p class="p3"><span class="s2">74</span></p>
+<p class="p3"><span class="s2">75</span></p>
+<p class="p3"><span class="s2">76</span></p>
+<p class="p3"><span class="s2">77</span></p>
+<p class="p3"><span class="s2">78</span></p>
+<p class="p3"><span class="s2">79</span></p>
+<p class="p3"><span class="s2">80</span></p>
+<p class="p3"><span class="s2">81</span></p>
+<p class="p3"><span class="s2">82</span></p>
+<p class="p3"><span class="s2">83</span></p>
+<p class="p3"><span class="s2">84</span></p>
+<p class="p3"><span class="s2">85</span></p>
+<p class="p3"><span class="s2">86</span></p>
+<p class="p3"><span class="s2">87</span></p>
+<p class="p3"><span class="s2">88</span></p>
+<p class="p3"><span class="s2">89</span></p>
+<p class="p3"><span class="s2">90</span></p>
+<p class="p3"><span class="s2">91</span></p>
+<p class="p3"><span class="s2">92</span></p>
+<p class="p3"><span class="s2">93</span></p>
+<p class="p3"><span class="s2">94</span></p>
+<p class="p3"><span class="s2">95</span></p>
+<p class="p3"><span class="s2">96</span></p>
+<p class="p3"><span class="s2">97</span></p>
+<p class="p3"><span class="s2">98</span></p>
+<p class="p3"><span class="s2">99</span></p>
+<p class="p3"><span class="s2">100</span></p>
+<p class="p3"><span class="s2">101</span></p>
+<p class="p3"><span class="s2">102</span></p>
+<p class="p3"><span class="s2">103</span></p>
+<p class="p3"><span class="s2">104</span></p>
+<p class="p3"><span class="s2">105</span></p>
+<p class="p3"><span class="s2">106</span></p>
+<p class="p3"><span class="s2">107</span></p>
+<p class="p3"><span class="s2">108</span></p>
+<p class="p3"><span class="s2">109</span></p>
+<p class="p3"><span class="s2">110</span></p>
+<p class="p3"><span class="s2">111</span></p>
+<p class="p3"><span class="s2">112</span></p>
+<p class="p3"><span class="s2">113</span></p>
+<p class="p3"><span class="s2">114</span></p>
+<p class="p3"><span class="s2">115</span></p>
+<p class="p3"><span class="s2">116</span></p>
+<p class="p3"><span class="s2">117</span></p>
+<p class="p3"><span class="s2">118</span></p>
+<p class="p3"><span class="s2">119</span></p>
+<p class="p3"><span class="s2">120</span></p>
+<p class="p3"><span class="s2">121</span></p>
+<p class="p3"><span class="s2">122</span></p>
+<p class="p3"><span class="s2">123</span></p>
+<p class="p3"><span class="s2">124</span></p>
+<p class="p3"><span class="s2">125</span></p>
+<p class="p3"><span class="s2">126</span></p>
+<p class="p3"><span class="s2">127</span></p>
+<p class="p3"><span class="s2">128</span></p>
+<p class="p3"><span class="s2">129</span></p>
+<p class="p3"><span class="s2">130</span></p>
+<p class="p3"><span class="s2">131</span></p>
+<p class="p3"><span class="s2">132</span></p>
+<p class="p3"><span class="s2">133</span></p>
+<p class="p3"><span class="s2">134</span></p>
+<p class="p3"><span class="s2">135</span></p>
+<p class="p3"><span class="s2">136</span></p>
+<p class="p3"><span class="s2">137</span></p>
+<p class="p3"><span class="s2">138</span></p>
+<p class="p3"><span class="s2">139</span></p>
+<p class="p3"><span class="s2">140</span></p>
+<p class="p3"><span class="s2">141</span></p>
+<p class="p3"><span class="s2">142</span></p>
+<p class="p3"><span class="s2">143</span></p>
+<p class="p3"><span class="s2">144</span></p>
+<p class="p3"><span class="s2">145</span></p>
+<p class="p3"><span class="s2">146</span></p>
+<p class="p3"><span class="s2">147</span></p>
+<p class="p3"><span class="s2">148</span></p>
+<p class="p3"><span class="s2">149</span></p>
+<p class="p3"><span class="s2">150</span></p>
+<p class="p3"><span class="s2">151</span></p>
+<p class="p3"><span class="s2">152</span></p>
+<p class="p3"><span class="s2">153</span></p>
+<p class="p3"><span class="s2">154</span></p>
+<p class="p3"><span class="s2">155</span></p>
+<p class="p3"><span class="s2">156</span></p>
+<p class="p3"><span class="s2">157</span></p>
+<p class="p3"><span class="s2">158</span></p>
+<p class="p3"><span class="s2">159</span></p>
+<p class="p3"><span class="s2">160</span></p>
+<p class="p3"><span class="s2">161</span></p>
+<p class="p3"><span class="s2">162</span></p>
+<p class="p3"><span class="s2">163</span></p>
+<p class="p3"><span class="s2">164</span></p>
+<p class="p3"><span class="s2">165</span></p>
+<p class="p3"><span class="s2">166</span></p>
+<p class="p3"><span class="s2">167</span></p>
+<p class="p3"><span class="s2">168</span></p>
+<p class="p3"><span class="s2">169</span></p>
+<p class="p3"><span class="s2">170</span></p>
+<p class="p3"><span class="s2">171</span></p>
+<p class="p3"><span class="s2">172</span></p>
+<p class="p3"><span class="s2">173</span></p>
+<p class="p3"><span class="s2">174</span></p>
+<p class="p3"><span class="s2">175</span></p>
+<p class="p3"><span class="s2">176</span></p>
+<p class="p3"><span class="s2">177</span></p>
+<p class="p3"><span class="s2">178</span></p>
+<p class="p3"><span class="s2">179</span></p>
+<p class="p3"><span class="s2">180</span></p>
+<p class="p3"><span class="s2">181</span></p>
+<p class="p3"><span class="s2">182</span></p>
+<p class="p3"><span class="s2">183</span></p>
+<p class="p3"><span class="s2">184</span></p>
+<p class="p3"><span class="s2">185</span></p>
+<p class="p3"><span class="s2">186</span></p>
+<p class="p3"><span class="s2">187</span></p>
+<p class="p3"><span class="s2">188</span></p>
+<p class="p3"><span class="s2">189</span></p>
+<p class="p4"><span class="s3"></span><br></p>
 </body>
-
 </html>
